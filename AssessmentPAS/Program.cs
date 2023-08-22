@@ -1,4 +1,6 @@
 using AssessmentPAS.Data;
+using AssessmentPAS.Services.Interfaces;
+using AssessmentPAS.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +14,9 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<PASDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("TableConnString")));
 
+//Dependency injection]
+builder.Services.AddScoped<IFormInterface, FormRepository>();
+builder.Services.AddScoped<ITableInterface, TableRepository>();
 
 var app = builder.Build();
 

@@ -1,74 +1,83 @@
-﻿using AssessmentPAS.Data;
-using AssessmentPAS.Dto;
+﻿using AssessmentPAS.Dto;
 using AssessmentPAS.Models;
+using AssessmentPAS.Services;
+using AssessmentPAS.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace AssessmentPAS.Controllers
 {
     [ApiController]
     [Route("api/")]
-    public class PASTableController : Controller
+    public class PASTableController : ControllerBase
     {
-        private readonly PASDbContext pasDbContext;
-        public PASTableController(PASDbContext pasDbContext )
+        public IFormInterface FormInterface{ get; }
+        public ITableInterface TableInterface { get; }
+        //private readonly PASDbContext pasDbContext;
+        public PASTableController(IFormInterface  formInterface, ITableInterface tableInterface)
         {
-            this.pasDbContext = pasDbContext;
+            FormInterface = formInterface;
+            TableInterface = tableInterface;
         }
         //Read operations
 
         //Get form using formid
-        [HttpGet]
-        [Route("Form/id/{id:guid}")]
+        [HttpGet("Form/id/{id:guid}")]
+        //[Route("Form/id/{id:guid}")]
         public async Task<IActionResult> GetFormById([FromRoute] Guid id)
-        {
-            var form = await pasDbContext.Forms.FirstOrDefaultAsync(x => x.Id == id);
-            if(form == null) {
-                return NotFound("Item Not Found");
-            }
-            return Ok(form);
-        }
-        //Get forms of a type
-
-        [HttpGet]
-        [Route("Form/Type/{type}")]
-        public async Task<IActionResult> GetFormByType([FromRoute] string type)
         {
             try
             {
-                var forms = await pasDbContext.Forms.Where(x => x.Type == type).ToListAsync();
-                if (forms.Count == 0)
+                var form = await FormInterface.GetFormById(id);
+                if (form == null)
                 {
-                    return NotFound($"To Forms with type '{type}' was found");
+                    return NotFound("Item Not Found");
                 }
-                return Ok(forms);
+                return Ok(form);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        
+        //Get forms of a type
+
+        [HttpGet("Form/Type/{type}")]
+        public async Task<IActionResult> GetFormByType(string type)
+        {
+            try
+            {
+                var forms = await FormInterface.GetFormByType(type);
+                return forms != null?Ok(forms): NotFound($"No Forms with type '{type}' was found");
+                
             }
             catch 
             {
                 return StatusCode(500,$"Error Occured While Getting Form of Type '{type}'");
             }
         }
-
         //Get  forms of a table along with its table name using table id
-        [HttpGet]
-        [Route("Forms/TableId/{TableId:Guid}")]
-        public async Task<ActionResult<List<Aotable>>> GetAllFormsByTableId([FromRoute] Guid TableId)
+        [HttpGet("Forms/TableId/{TableId:Guid}")]
+        public async Task<ActionResult<List<Aotable>>> GetAllFormsByTableId(Guid TableId)
         {
             try
             {
-                var table = await pasDbContext.Aotables.FirstOrDefaultAsync(x => x.Id == TableId);
-                var forms = await pasDbContext.Forms.Include("Table").Where(x => x.TableId == TableId).ToListAsync();
-                if (table != null && forms.Any())
+                var table = await TableInterface.GetTableById(TableId);
+                if (table == null)
                 {
-                    var re = new
+                    return NotFound($"Table ({TableId}) Not Found!");
+                }
+                var forms = await FormInterface.GetAllFormsByTableId(TableId);
+                if (forms.Any())
+                {
+                    var result = new
                     {
                         forms,
                         tablename = table.Name
                     };
-                    return Ok(re);
+                    return Ok(result);
                 }
-                return BadRequest("No Table Id found for Form Table");
+                return NotFound($"No Form associated with table({TableId})");
             }
             catch
             {
@@ -77,18 +86,22 @@ namespace AssessmentPAS.Controllers
 
         }
         //Get all records from Form table associated to the TableName (AOTable) passed as parameter
-        [HttpGet]
-        [Route("Form/TableName/{TableName}")]
-        public async Task<IActionResult> GetAllFormsByTableName([FromRoute] string TableName)
+        [HttpGet("Form/TableName/{TableName}")]
+        public async Task<IActionResult> GetAllFormsByTableName(string TableName)
         {
             try
             {
-                var table = await pasDbContext.Aotables.FirstOrDefaultAsync(x => x.Name ==TableName);
+                if (string.IsNullOrEmpty(TableName))
+                {
+                    return BadRequest("The table name cannot be empty.");
+                }
+                var table = await TableInterface.GetTableByTableName(TableName);
                 if(table==null)
                 {
                     return NotFound($"Table - '{TableName}' not found");
                 }
-                var forms = await pasDbContext.Forms.Where(x=>x.TableId==table.Id).ToListAsync();
+                var table_id = table.Id;
+                var forms = await FormInterface.GetAllFormsByTableId(table.Id);
                 if (forms.Any())
                 {
                     return Ok(forms);
@@ -101,23 +114,29 @@ namespace AssessmentPAS.Controllers
                 return StatusCode(500);
             }
         }
+ 
         //Add record to form table using table name
-        [HttpPost]
-        [Route("Form/Add/{TableName}")]
-        public async Task<IActionResult> AddFormByTableName([FromRoute] string TableName, [FromBody] Form newform)
+        [HttpPost("Form/Add/{TableName}")]
+        public async Task<IActionResult> AddFormByTableName(string TableName, [FromBody] Form newForm)
         {
 
             try
             {
-                var table = await pasDbContext.Aotables.FirstOrDefaultAsync(x => x.Name == TableName);
+                if (string.IsNullOrEmpty(TableName))
+                {
+                    return BadRequest("The table name cannot be empty.");
+                }
+                var table =  await TableInterface.GetTableByTableName(TableName); 
                 if (table != null)
                 {
-                    newform.Id = Guid.NewGuid();
-                    newform.TableId = table.Id;
-                    await pasDbContext.Forms.AddAsync(newform);
-                    await pasDbContext.SaveChangesAsync();
-                    //return CreatedAtAction(nameof(AddFormByTableName), new { id = newform.Id }, newform);
-                    return Ok(newform);
+                    newForm.Id = Guid.NewGuid();
+                    newForm.TableId = table.Id;
+                    var result = await FormInterface.AddFormByTableName(TableName, newForm);
+                    if(result!=null)
+                    {
+                        return Ok(result);                        
+                    }
+                    return BadRequest("Error occured");
                 }
                 return NotFound($"No Mathcing found for TableName '{TableName}'");
             }
@@ -128,30 +147,19 @@ namespace AssessmentPAS.Controllers
             }
         }
         //Edit a record in Form table by passing Form Name as the parameter
-        [HttpPatch]
-        [Route("Form/Update/{FormName}")]
-        public async Task<IActionResult> UpdateFormByName([FromRoute] string FormName, [FromBody] EditFormDto editform)
+        [HttpPatch("Form/Update/{FormName}")]
+        public async Task<IActionResult> UpdateFormByName(string FormName, [FromBody] EditFormDto editForm)
         {
             try
             {
-                var oldform = await pasDbContext.Forms.FirstOrDefaultAsync(x => x.Name == FormName);
-                if (oldform != null)
+                if(string.IsNullOrEmpty(FormName))
                 {
-
-                    oldform.Name = editform.Name ?? oldform.Name;
-                    oldform.Sequence = editform.Sequence ?? oldform.Sequence;
-                    oldform.Comment = editform.Comment ?? oldform.Comment;
-                    oldform.TabResourceName = editform.TabResourceName ?? oldform.TabResourceName;
-                    oldform.SubSequence = editform.SubSequence ?? oldform.SubSequence;
-                    oldform.MinOccurs = editform.MinOccurs ?? oldform.MinOccurs;
-                    oldform.MaxOccurs = editform.MaxOccurs ?? oldform.MaxOccurs;
-                    oldform.BtnCndAdd = editform.BtnCndAdd ?? oldform.BtnCndAdd;
-                    oldform.BtnCndCopy = editform.BtnCndCopy ?? oldform.BtnCndCopy;
-                    oldform.BtnCndAdd = editform.BtnCndAdd ?? oldform.BtnCndAdd;
-                    oldform.Condition = editform.Condition ?? oldform.Condition;
-                    oldform.AddChangeDeleteFlag = editform.AddChangeDeleteFlag ?? oldform.AddChangeDeleteFlag;
-                    await pasDbContext.SaveChangesAsync();
-                    return Ok(oldform);
+                    return BadRequest("Form name shouldn't be empty");
+                }
+                var result = await FormInterface.UpdateFormByName(FormName, editForm);
+                if (result!=null)
+                {
+                    return Ok(result);
                 }
                 return NotFound($"Form {FormName} not found");
             }
@@ -161,18 +169,16 @@ namespace AssessmentPAS.Controllers
             }
 
         }
-        [HttpDelete]
-        [Route("Form/Delete/{id:guid}")]
+        [HttpDelete("Form/Delete/{id:guid}")]
         public async Task<IActionResult> DeleteFormById([FromRoute] Guid id)
         {
             try
             {
-                var form = await pasDbContext.Forms.FindAsync(id);
-                if (form != null)
+
+                var result = await FormInterface.DeleteFormById(id);
+                if (result != null)
                 {
-                    pasDbContext.Remove(form);
-                    await pasDbContext.SaveChangesAsync();
-                    return Ok(form);
+                    return Ok(result);
                 }
                 return NotFound("Form Not Found");
             }

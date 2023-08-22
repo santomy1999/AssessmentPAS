@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Assignements\\ASP.NET\\API\\AssessmentPAS - Copy\\AssessmentPAS\\AssessmentPAS.csproj": {}
+    "D:\\Assignements\\ASP.NET\\API\\AssessmentPAS\\AssessmentPAS\\AssessmentPAS.csproj": {}
   },
   "projects": {
-    "D:\\Assignements\\ASP.NET\\API\\AssessmentPAS - Copy\\AssessmentPAS\\AssessmentPAS.csproj": {
+    "D:\\Assignements\\ASP.NET\\API\\AssessmentPAS\\AssessmentPAS\\AssessmentPAS.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Assignements\\ASP.NET\\API\\AssessmentPAS - Copy\\AssessmentPAS\\AssessmentPAS.csproj",
+        "projectUniqueName": "D:\\Assignements\\ASP.NET\\API\\AssessmentPAS\\AssessmentPAS\\AssessmentPAS.csproj",
         "projectName": "AssessmentPAS",
-        "projectPath": "D:\\Assignements\\ASP.NET\\API\\AssessmentPAS - Copy\\AssessmentPAS\\AssessmentPAS.csproj",
+        "projectPath": "D:\\Assignements\\ASP.NET\\API\\AssessmentPAS\\AssessmentPAS\\AssessmentPAS.csproj",
         "packagesPath": "C:\\Users\\santo.m\\.nuget\\packages\\",
-        "outputPath": "D:\\Assignements\\ASP.NET\\API\\AssessmentPAS - Copy\\AssessmentPAS\\obj\\",
+        "outputPath": "D:\\Assignements\\ASP.NET\\API\\AssessmentPAS\\AssessmentPAS\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\santo.m\\AppData\\Roaming\\NuGet\\NuGet.Config",

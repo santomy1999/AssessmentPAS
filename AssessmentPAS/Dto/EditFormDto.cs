@@ -8,6 +8,7 @@ namespace AssessmentPAS.Dto
         public Guid Id { get; set; }
         [JsonIgnore]
         public Guid? RatebookId { get; set; }
+        [JsonIgnore]
         public Guid? TableId { get; set; }
         public string? AddChangeDeleteFlag { get; set; }
         public int? Sequence { get; set; }
